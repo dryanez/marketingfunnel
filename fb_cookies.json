@@ -1,0 +1,52 @@
+[
+  {
+    "name": "datr",
+    "value": "tiaVaah-luH5WuU99hp1sIwB",
+    "domain": ".facebook.com",
+    "path": "/",
+    "expires": 1805942454.918269,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "sb",
+    "value": "tiaVaco1Kft6pOg27-5M3XB_",
+    "domain": ".facebook.com",
+    "path": "/",
+    "expires": 1805942454.918331,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "wd",
+    "value": "1366x768",
+    "domain": ".facebook.com",
+    "path": "/",
+    "expires": 1771987748,
+    "httpOnly": false,
+    "secure": true,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "dpr",
+    "value": "1",
+    "domain": ".facebook.com",
+    "path": "/",
+    "expires": 1771987748,
+    "httpOnly": false,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "fr",
+    "value": "0wBoXAVpt5VZkY88r..BplSa2..AAA.0.0.BplSiY.AWdPni3EUkCXAtK9Q0zCCsLJN3k",
+    "domain": ".facebook.com",
+    "path": "/",
+    "expires": 1779158937.034497,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  }
+]

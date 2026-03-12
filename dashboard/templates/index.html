@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FB Marketplace Funnel - Leads</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        select {
+            min-width: 130px;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 min-h-screen">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-gray-900 tracking-tight">🚗 FB Funnel Dashboard</h1>
+            <div class="flex items-center space-x-3">
+                <button onclick="startScrape()"
+                    class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg flex items-center gap-2 shadow-sm transition-colors">
+                    <span>🚀</span> Scrape Now
+                </button>
+                <button onclick="startMessaging()"
+                    class="bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 px-4 rounded-lg flex items-center gap-2 shadow-sm transition-colors">
+                    <span>💬</span> Send Messages
+                </button>
+                <span id="total-leads"
+                    class="bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full">Loading...</span>
+                <button onclick="loadLeads()" title="Refresh" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Scrape Progress Banner (hidden by default) -->
+    <div id="scrape-banner" class="hidden fixed top-0 left-0 right-0 z-[999] bg-indigo-900 text-white px-6 py-3 shadow-xl">
+        <div class="max-w-7xl mx-auto flex items-center gap-4">
+            <div class="text-lg">🚀</div>
+            <div class="flex-1">
+                <div class="flex justify-between items-center mb-1">
+                    <span id="scrape-log" class="text-sm font-medium truncate max-w-xl">Iniciando...</span>
+                    <span id="scrape-pct" class="text-sm font-bold ml-4">0%</span>
+                </div>
+                <div class="w-full bg-indigo-700 rounded-full h-2">
+                    <div id="scrape-bar" class="bg-green-400 h-2 rounded-full transition-all duration-500"
+                         style="width: 0%"></div>
+                </div>
+                <div class="flex justify-between text-xs text-indigo-300 mt-1">
+                    <span id="scrape-vehicles"></span>
+                    <span>Scraping Facebook Marketplace...</span>
+                </div>
+            </div>
+            <button onclick="document.getElementById('scrape-banner').classList.add('hidden')" class="text-indigo-300 hover:text-white text-xl ml-2">&times;</button>
+        </div>
+    </div>
+
+    <!-- Messaging Progress Banner (hidden by default) -->
+    <div id="msg-banner" class="hidden fixed top-0 left-0 right-0 z-[999] bg-green-900 text-white px-6 py-3 shadow-xl">
+        <div class="max-w-7xl mx-auto flex items-center gap-4">
+            <div class="text-lg">💬</div>
+            <div class="flex-1">
+                <div class="flex justify-between items-center mb-1">
+                    <span id="msg-log" class="text-sm font-medium truncate max-w-xl">Iniciando mensajes...</span>
+                    <span id="msg-pct" class="text-sm font-bold ml-4">0%</span>
+                </div>
+                <div class="w-full bg-green-700 rounded-full h-2">
+                    <div id="msg-bar" class="bg-yellow-400 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+                <div class="flex justify-between text-xs text-green-300 mt-1">
+                    <span id="msg-sent"></span>
+                    <span>Enviando mensajes · 5–8 min entre cada uno</span>
+                </div>
+            </div>
+            <button onclick="document.getElementById('msg-banner').classList.add('hidden')" class="text-green-300 hover:text-white text-xl ml-2">&times;</button>
+        </div>
+    </div>
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- Filters -->
+        <div class="mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <div class="flex flex-wrap gap-3 items-end">
+
+                <!-- Tabs -->
+                <div class="flex space-x-1 mb-4 border-b border-gray-200 pb-1 w-full overflow-x-auto">
+                    <button onclick="switchTab('new')" id="tab-new"
+                        class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-indigo-500 text-indigo-600 transition-colors whitespace-nowrap">Nuevos</button>
+                    <button onclick="switchTab('contacted')" id="tab-contacted"
+                        class="tab-btn px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors whitespace-nowrap">Contactados</button>
+                    <button onclick="switchTab('ignored')" id="tab-ignored"
+                        class="tab-btn px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors whitespace-nowrap">Ignorados</button>
+                    <button onclick="switchTab('outside')" id="tab-outside"
+                        class="tab-btn px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors whitespace-nowrap">Fuera de Región</button>
+                    <button onclick="switchTab('all')" id="tab-all"
+                        class="tab-btn px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors whitespace-nowrap">Todos</button>
+                </div>
+                <input type="hidden" id="status-filter" value="new">
+
+                <!-- Brand -->
+                <div class="flex flex-col gap-1">
+                    <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Marca</label>
+                    <select id="brand-filter" onchange="onBrandChange()"
+                        class="border-gray-300 rounded-lg shadow-sm text-sm p-2 border focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Todas las marcas</option>
+                    </select>
+                </div>
+
+                <!-- Model -->
+                <div class="flex flex-col gap-1">
+                    <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Modelo</label>
+                    <select id="model-filter" onchange="renderLeads()"
+                        class="border-gray-300 rounded-lg shadow-sm text-sm p-2 border focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Todos los modelos</option>
+                    </select>
+                </div>
+
+                <!-- Min Price -->
+                <div class="flex flex-col gap-1">
+                    <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Precio mín (CLP)</label>
+                    <input type="number" id="price-min" placeholder="0" step="100000" min="0" oninput="renderLeads()"
+                        class="border-gray-300 rounded-lg shadow-sm text-sm p-2 border w-36 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+
+                <!-- Max Price -->
+                <div class="flex flex-col gap-1">
+                    <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Precio máx (CLP)</label>
+                    <input type="number" id="price-max" placeholder="Sin límite" step="100000" min="0"
+                        oninput="renderLeads()"
+                        class="border-gray-300 rounded-lg shadow-sm text-sm p-2 border w-36 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+
+                <!-- Min Year -->
+                <div class="flex flex-col gap-1">
+                    <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Año mín</label>
+                    <select id="year-filter" onchange="renderLeads()"
+                        class="border-gray-300 rounded-lg shadow-sm text-sm p-2 border focus:ring-blue-500 focus:border-blue-500">
+                        <option value="0">Cualquiera</option>
+                        <option value="2000">2000+</option>
+                        <option value="2005">2005+</option>
+                        <option value="2010">2010+</option>
+                        <option value="2015">2015+</option>
+                        <option value="2018">2018+</option>
+                        <option value="2020">2020+</option>
+                    </select>
+                </div>
+
+                <!-- Reset -->
+                <div class="flex flex-col gap-1 justify-end">
+                    <button onclick="resetFilters()"
+                        class="text-sm text-gray-500 hover:text-red-600 border border-gray-300 hover:border-red-400 rounded-lg px-3 py-2 transition-colors">
+                        ✕ Limpiar
+                    </button>
+                </div>
+
+                <span class="flex-grow"></span>
+                <div id="filter-stats" class="text-sm text-gray-400 self-end pb-2"></div>
+            </div>
+        </div>
+
+        <!-- Grid -->
+        <div id="leads-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- Cards injected via JS -->
+        </div>
+
+    </main>
+
+    <script>
+        let allLeads = [];
+
+        // ── Parse brand & model from title ──────────────────────────────
+        function parseBrandModel(title) {
+            const parts = title.trim().split(/\s+/);
+            const start = (parts[0] && /^\d{4}$/.test(parts[0])) ? 1 : 0;
+            const brand = (parts[start] || '').toLowerCase();
+            const model = parts.slice(start + 1).join(' ').toLowerCase() || '';
+            return { brand, model };
+        }
+
+        // ── Populate brand dropdown from data ───────────────────────────
+        function populateBrandFilter() {
+            const brands = [...new Set(
+                allLeads.map(l => parseBrandModel(l.title).brand)
+                    .filter(Boolean)
+            )].sort();
+
+            const sel = document.getElementById('brand-filter');
+            sel.innerHTML = '<option value="">Todas las marcas</option>';
+            brands.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b;
+                opt.textContent = b;
+                sel.appendChild(opt);
+            });
+        }
+
+        // ── When brand changes, repopulate model dropdown ────────────────
+        function onBrandChange() {
+            const brand = document.getElementById('brand-filter').value;
+            const modelSel = document.getElementById('model-filter');
+            modelSel.innerHTML = '<option value="">Todos los modelos</option>';
+
+            if (brand) {
+                const models = [...new Set(
+                    allLeads
+                        .filter(l => parseBrandModel(l.title).brand === brand)
+                        .map(l => parseBrandModel(l.title).model)
+                        .filter(Boolean)
+                )].sort();
+
+                models.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m;
+                    opt.textContent = m;
+                    modelSel.appendChild(opt);
+                });
+            }
+            renderLeads();
+        }
+
+        function parsePrice(priceStr) {
+            if (!priceStr || priceStr === 'N/A') return null;
+            const digits = String(priceStr).replace(/[^\d]/g, '');
+            return digits ? parseInt(digits, 10) : null;
+        }
+
+        // ── Helper: Copy to clipboard ────────────────────────────────────
+        function copyMessage(btn, url) {
+            const textarea = btn.previousElementSibling;
+            textarea.select();
+            textarea.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(textarea.value).then(() => {
+                const orig = btn.innerHTML;
+                btn.innerHTML = '✅';
+                setTimeout(() => btn.innerHTML = orig, 1500);
+            });
+        }
+
+        // ── Render Valuation Results Box ────────────────────────────────
+        function renderValuationBox(pricing, lead) {
+            const fmt = n => 'CLP ' + n.toLocaleString('es-CL');
+            const market = pricing.market_price;
+            const consignacion = pricing.consignment_liquidation;
+            const compra = pricing.immediate_offer;
+
+            // Extract brand/model for message
+            const { brand, model } = parseBrandModel(lead.title);
+
+            return `
+                <div class="mt-3 pt-3 border-t border-gray-100 animate-fade-in bg-indigo-50/50 p-2 rounded-lg">
+                    <div class="mb-2">
+                        <span class="text-xs text-purple-600 font-bold uppercase">Valor Mercado Real (IA)</span>
+                        <p class="text-lg font-bold text-gray-900">${fmt(market)}</p>
+                    </div>
+                    <div class="space-y-1">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-gray-500 font-medium">🤝 Consignación Real</span>
+                            <span class="font-semibold text-green-600">${fmt(consignacion)}</span>
+                        </div>
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-gray-500 font-medium">⚡ Compra inmediata</span>
+                            <span class="font-semibold text-amber-600">${fmt(compra)}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Generated Message -->
+                    <div class="mt-3 pt-3 border-t border-gray-100">
+                        <label class="block text-xs font-semibold text-gray-500 mb-1">💬 Mensaje sugerido</label>
+                        <div class="flex gap-2">
+                            <textarea readonly class="w-full text-xs bg-white border border-gray-200 rounded p-2 text-gray-700 h-40 resize-none leading-relaxed focus:outline-none focus:ring-1 focus:ring-indigo-500">Hola ${lead.seller ? lead.seller.split(' ')[0] : 'Amigo'}, vi tu ${brand.toUpperCase()} ${model.toUpperCase()} ${lead.year} publicado.
+
+Nuestra tecnología analizó el mercado y estima que podríamos gestionar la venta asegurándote ${fmt(consignacion)} líquidos para tu bolsillo.
+
+Así tú obtienes el monto que buscas sin tener que lidiar con extraños ni trámites.
+
+¿Te hace sentido esa cifra para conversar?
+
+Quedo atento,
+Felipe Yanez
+Agente de Ventas | Autodirecto.cl</textarea>
+                            <button onclick="copyMessage(this, '${lead.url}')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-200 rounded px-3 flex flex-col items-center justify-center gap-1 transition-colors w-16" title="Copiar y Contactar">
+                                <span class="text-xl">📋</span>
+                                <span class="text-[10px] font-bold text-center">Copiar</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+             `;
+        }
+
+        // ── Get Real Valuation from API ──────────────────────────────────
+        async function getValuation(btn, url, make, model, year, mileage) {
+            const originalText = btn.innerHTML;
+
+            // UI Loading state
+            btn.disabled = true;
+            btn.innerHTML = '<span>⏳</span> Tasando...';
+            btn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+            btn.classList.add('bg-gray-400');
+
+            try {
+                const response = await fetch('/api/valuation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ make, model, year, mileage })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    // Save result to backend and refresh UI
+                    updateLead(url, { valuation: data.pricing });
+                } else {
+                    throw new Error(data.error || 'Error en tasación');
+                }
+            } catch (e) {
+                console.error(e);
+                btn.innerHTML = '❌ Error';
+                btn.classList.add('bg-red-500');
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('bg-red-500', 'bg-gray-400');
+                    btn.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+                }, 3000);
+            }
+        }
+
+        // ── Reset all filters ────────────────────────────────────────────
+        function resetFilters() {
+            document.getElementById('status-filter').value = 'all';
+            document.getElementById('brand-filter').value = '';
+            document.getElementById('model-filter').innerHTML = '<option value="">Todos los modelos</option>';
+            document.getElementById('price-min').value = '';
+            document.getElementById('price-max').value = '';
+            document.getElementById('year-filter').value = '0';
+            switchTab('new');
+        }
+
+        // ── Switch Tabs ────────────────────────────────────────────────
+        function switchTab(status) {
+            document.getElementById('status-filter').value = status;
+
+            // Update Tab UI
+            ['new', 'contacted', 'ignored', 'all'].forEach(s => {
+                const btn = document.getElementById('tab-' + s);
+                if (s === status) {
+                    btn.classList.add('border-indigo-500', 'text-indigo-600', 'border-b-2');
+                    btn.classList.remove('text-gray-500', 'hover:text-gray-700');
+                } else {
+                    btn.classList.remove('border-indigo-500', 'text-indigo-600', 'border-b-2');
+                    btn.classList.add('text-gray-500', 'hover:text-gray-700');
+                }
+            });
+
+            renderLeads();
+        }
+
+        // ── Main render ──────────────────────────────────────────────────
+        function renderLeads() {
+            const grid = document.getElementById('leads-grid');
+            const statusFilter = document.getElementById('status-filter').value;
+            const brandFilter = document.getElementById('brand-filter').value.toLowerCase();
+            const modelFilter = document.getElementById('model-filter').value.toLowerCase();
+            const priceMin = parseInt(document.getElementById('price-min').value) || 0;
+            const priceMax = parseInt(document.getElementById('price-max').value) || Infinity;
+            const yearFilter = parseInt(document.getElementById('year-filter').value) || 0;
+
+            const filtered = allLeads.filter(lead => {
+                // Status & Region Logic
+                const status = lead.status || 'new';
+                
+                if (statusFilter === 'outside') {
+                    if (lead.is_v_region) return false;
+                } else if (statusFilter !== 'all') {
+                    // Regular tabs (Nuevos, Contactados, Ignorados) only show V Region cars
+                    if (!lead.is_v_region) return false;
+                    if (status !== statusFilter) return false;
+                }
+                
+                // Year
+                if (yearFilter && lead.year && parseInt(lead.year) < yearFilter) return false;
+                // Brand / Model
+                const { brand, model } = parseBrandModel(lead.title);
+                if (brandFilter && brand !== brandFilter) return false;
+                if (modelFilter && !model.startsWith(modelFilter)) return false;
+                // Price
+                const price = parsePrice(lead.price);
+                if (price !== null) {
+                    if (priceMin && price < priceMin) return false;
+                    if (priceMax < Infinity && price > priceMax) return false;
+                }
+                return true;
+            });
+
+            document.getElementById('filter-stats').innerText =
+                `Mostrando ${filtered.length} de ${allLeads.length}`;
+            document.getElementById('total-leads').innerText = `${filtered.length} / ${allLeads.length} Leads`;
+            grid.innerHTML = '';
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '<div class="col-span-full text-center py-16 text-gray-400 text-lg">Sin resultados para estos filtros</div>';
+                return;
+            }
+
+            filtered.forEach(lead => {
+                const card = document.createElement('div');
+                card.className = `bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200 border border-gray-100 flex flex-col ${lead.status === 'ignored' ? 'opacity-50' : ''}`;
+
+                let priceStr = lead.price || 'N/A';
+                if (priceStr.startsWith("CLP")) {
+                    const priceNum = parsePrice(priceStr);
+                    if (priceNum) priceStr = "CLP " + priceNum.toLocaleString('es-CL');
+                }
+                const price = priceStr;
+
+                // Parse brand/model for API call
+                const { brand, model } = parseBrandModel(lead.title);
+                const year = lead.year || 2020; // fallback if missing
+                const mileage = lead.mileage || "0";
+
+                let statusColor = 'bg-gray-100 text-gray-800';
+                let timerHtml = '';
+
+                if (lead.status === 'contacted') {
+                    statusColor = 'bg-green-100 text-green-800';
+
+                    // Timer Logic
+                    if (lead.contacted_at) {
+                        const now = Math.floor(Date.now() / 1000);
+                        const deadline = lead.contacted_at + (72 * 3600);
+                        const remaining = deadline - now;
+
+                        if (remaining > 0) {
+                            const h = Math.floor(remaining / 3600);
+                            const m = Math.floor((remaining % 3600) / 60);
+                            timerHtml = `<span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded text-xs font-bold border border-indigo-100 flex items-center gap-1">
+                                            <span>⏳</span> ${h}h ${m}m
+                                         </span>`;
+                        } else {
+                            timerHtml = `<span class="bg-red-50 text-red-700 px-2 py-0.5 rounded text-xs font-bold border border-red-100 flex items-center gap-1">
+                                            <span>⚠️</span> Expirado
+                                         </span>`;
+                        }
+                    }
+                }
+                if (lead.status === 'ignored') statusColor = 'bg-red-50 text-red-800';
+
+                const photoHtml = lead.photo_url
+                    ? `<img src="${lead.photo_url}" alt="${lead.title}" class="w-full h-44 object-cover bg-gray-100" onerror="this.onerror=null;this.src='https://placehold.co/400x176/e5e7eb/9ca3af?text=Sin+Foto';">`
+                    : `<div class="w-full h-44 bg-gray-100 flex items-center justify-center text-gray-400 text-5xl">🚗</div>`;
+
+                // Content: Valuation or Button
+                let valuationContent = '';
+                if (lead.valuation) {
+                    valuationContent = renderValuationBox(lead.valuation, lead);
+                } else {
+                    valuationContent = `
+                        <button onclick="getValuation(this, '${lead.url}', '${brand}', '${model}', '${year}', '${mileage}')"
+                            class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium py-2 px-3 rounded-lg flex items-center justify-center gap-2 transition-colors mb-2">
+                            <span>📊</span> Tasar con IA
+                        </button>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div class="relative">
+                        ${photoHtml}
+                        ${lead.is_sold ? `<span class="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">VENDIDO</span>` : ''}
+                        
+                        <!-- Status & Timer container -->
+                        <div class="absolute top-2 right-2 flex flex-col items-end gap-1">
+                            <span class="px-2 py-1 text-xs font-bold rounded-md bg-orange-100 text-orange-800 shadow-sm border border-orange-200">
+                                🔥 ${lead.score || 0}/100
+                            </span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColor} capitalize shadow-sm">
+                                ${lead.status || 'new'}
+                            </span>
+                            ${timerHtml}
+                        </div>
+                    </div>
+                    <div class="p-4 flex-grow">
+                        <h3 class="text-base font-bold text-gray-900 mb-1 leading-snug line-clamp-2" title="${lead.title}">${lead.title}</h3>
+                        <div class="mb-3">
+                            <span class="text-xs text-gray-400 uppercase tracking-wide font-medium">Precio pedido</span>
+                            <p class="text-xl font-semibold text-blue-600">${price}</p>
+                        </div>
+
+                        ${valuationContent}
+                        
+                        <hr class="my-2 border-gray-100">
+                        <div class="space-y-1 text-sm text-gray-600">
+                            <div class="flex items-center">
+                                <span class="w-5 text-center mr-2">📍</span> ${lead.location || 'N/A'}
+                                ${lead.is_v_region && lead.distance_to_vina !== undefined && lead.distance_to_vina !== 9999 ? `<span class="ml-2 text-xs font-semibold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-100 whitespace-nowrap">${lead.distance_to_vina}km a Viña</span>` : ''}
+                            </div>
+                            <div class="flex items-center">
+                                <span class="w-5 text-center mr-2">📅</span> ${lead.year || '----'}
+                                ${lead.mileage ? `<span class="ml-2 text-gray-400">• ${lead.mileage}</span>` : ''}
+                            </div>
+                            <div class="flex items-center mt-1">
+                                <span class="w-5 text-center mr-2 text-gray-400">👤</span> ${lead.seller || 'Desconocido'}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 border-t border-gray-100 flex justify-between items-center gap-2">
+                        <a href="${lead.url}" target="_blank" rel="noopener noreferrer"
+                           class="flex-1 text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors">
+                            Ver en FB
+                        </a>
+                        <div class="relative inline-block text-left group">
+                            <button class="text-gray-400 hover:text-gray-600 p-2 text-lg">⋮</button>
+                            <div class="hidden group-hover:block absolute right-0 bottom-full mb-2 w-36 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-10">
+                                <div class="py-1">
+                                    <button onclick="updateLead('${lead.url}', {status: 'contacted'})" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">✅ Contactado</button>
+                                    <button onclick="updateLead('${lead.url}', {status: 'ignored'})"   class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🚫 Ignorar</button>
+                                    <button onclick="updateLead('${lead.url}', {status: 'new'})"       class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🔄 Resetear</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // ── Load data from API ───────────────────────────────────────────
+        async function loadLeads() {
+            const grid = document.getElementById('leads-grid');
+            grid.innerHTML = '<div class="col-span-full text-center py-12 text-gray-500">Cargando autos...</div>';
+
+            try {
+                const response = await fetch('/api/leads');
+                allLeads = await response.json();
+                populateBrandFilter();
+                renderLeads();
+            } catch (err) {
+                console.error(err);
+                grid.innerHTML = '<div class="col-span-full text-center py-12 text-red-500">Error cargando datos. Revisa la consola.</div>';
+            }
+        }
+
+        // ── Update lead status/valuation ─────────────────────────────────
+        async function updateLead(url, changes) {
+            try {
+                const payload = { url, ...changes };
+                await fetch('/api/leads/status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const lead = allLeads.find(l => l.url === url);
+                if (lead) {
+                    if (changes.status) {
+                        lead.status = changes.status;
+                        if (changes.status === 'contacted') {
+                            lead.contacted_at = Math.floor(Date.now() / 1000);
+                        }
+                    }
+                    if (changes.valuation) {
+                        lead.valuation = changes.valuation;
+                    }
+                }
+                renderLeads();
+            } catch (err) {
+                alert('Error al actualizar lead');
+            }
+        }
+
+        // ── Trigger scrape via SSE ───────────────────────────────────────
+        function startScrape() {
+            const banner   = document.getElementById('scrape-banner');
+            const bar      = document.getElementById('scrape-bar');
+            const pctEl    = document.getElementById('scrape-pct');
+            const logEl    = document.getElementById('scrape-log');
+            const vehEl    = document.getElementById('scrape-vehicles');
+
+            // Show banner
+            banner.classList.remove('hidden');
+            bar.style.width = '0%';
+            pctEl.textContent = '0%';
+            logEl.textContent = 'Iniciando scraper...';
+            vehEl.textContent = '';
+
+            const evtSource = new EventSource('/api/scrape');
+
+            evtSource.onmessage = (e) => {
+                let msg;
+                try { msg = JSON.parse(e.data); } catch { return; }
+
+                const pct = msg.pct || 0;
+                bar.style.width = pct + '%';
+                pctEl.textContent = pct + '%';
+                if (msg.log) logEl.textContent = msg.log;
+                if (msg.vehicles) vehEl.textContent = `${msg.vehicles} vehículos encontrados`;
+
+                if (msg.done) {
+                    evtSource.close();
+                    bar.classList.remove('bg-green-400');
+                    bar.classList.add(msg.success ? 'bg-blue-400' : 'bg-red-400');
+                    // Reload leads after short delay
+                    setTimeout(() => {
+                        loadLeads();
+                        setTimeout(() => banner.classList.add('hidden'), 4000);
+                    }, 1500);
+                }
+            };
+
+            evtSource.onerror = () => {
+                evtSource.close();
+                logEl.textContent = '❌ Connection lost or scraper exited.';
+                bar.classList.add('bg-red-400');
+            };
+        }
+
+        // ── Trigger auto-messenger via SSE ───────────────────────────────
+        function startMessaging() {
+            const limit = prompt('¿Cuántos mensajes enviar? (máx recomendado: 50)', '10');
+            if (!limit || isNaN(limit)) return;
+            
+            const banner = document.getElementById('msg-banner');
+            const bar    = document.getElementById('msg-bar');
+            const pctEl  = document.getElementById('msg-pct');
+            const logEl  = document.getElementById('msg-log');
+            const sentEl = document.getElementById('msg-sent');
+
+            banner.classList.remove('hidden');
+            bar.style.width = '0%';
+            pctEl.textContent = '0%';
+            logEl.textContent = 'Iniciando auto-messenger...';
+            sentEl.textContent = '';
+
+            const evtSource = new EventSource(`/api/auto_message?limit=${limit}`);
+
+            evtSource.onmessage = (e) => {
+                let msg;
+                try { msg = JSON.parse(e.data); } catch { return; }
+
+                const pct = msg.pct || 0;
+                bar.style.width = pct + '%';
+                pctEl.textContent = pct + '%';
+                if (msg.log) logEl.textContent = msg.log;
+                if (msg.sent !== undefined) sentEl.textContent = `${msg.sent} mensaje(s) enviado(s)`;
+
+                if (msg.done) {
+                    evtSource.close();
+                    bar.classList.remove('bg-yellow-400');
+                    bar.classList.add(msg.success ? 'bg-blue-400' : 'bg-red-400');
+                    setTimeout(() => {
+                        loadLeads();
+                        setTimeout(() => banner.classList.add('hidden'), 5000);
+                    }, 2000);
+                }
+            };
+
+            evtSource.onerror = () => {
+                evtSource.close();
+                logEl.textContent = '❌ Connection lost or messenger exited.';
+                bar.classList.add('bg-red-400');
+            };
+        }
+
+        // Init
+        loadLeads();
+    </script>
+</body>
+
+</html>
